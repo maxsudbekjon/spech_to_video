@@ -3,347 +3,965 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Ovozli Video Qidiruv</title>
+    <title>Virtual Video Chat Simulator</title>
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;600;700&display=swap");
+
       :root {
-        --bg: #0f172a;
-        --panel: #111827;
-        --panel-2: #0b1220;
-        --text: #e5e7eb;
+        --bg: #0b0c10;
+        --bg-2: #101522;
+        --panel: rgba(16, 21, 34, 0.78);
+        --glass: rgba(12, 14, 22, 0.7);
+        --text: #f3f4f6;
         --muted: #9ca3af;
-        --accent: #22d3ee;
-        --accent-2: #38bdf8;
-        --danger: #f87171;
+        --accent: #ff8fb1;
+        --accent-2: #65d6ff;
+        --accent-3: #ffd166;
+        --danger: #ff6b6b;
+        --success: #9ef5b8;
+        --shadow: 0 24px 80px rgba(5, 8, 18, 0.7);
       }
+
       * { box-sizing: border-box; }
+
       body {
         margin: 0;
-        font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
-        background:
-          radial-gradient(1200px 600px at 20% -10%, rgba(34,211,238,0.18), transparent),
-          radial-gradient(900px 500px at 90% 0%, rgba(56,189,248,0.12), transparent),
-          var(--bg);
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
         color: var(--text);
         min-height: 100vh;
+        background:
+          radial-gradient(800px 500px at 15% -10%, rgba(255, 143, 177, 0.18), transparent 60%),
+          radial-gradient(900px 700px at 90% 10%, rgba(101, 214, 255, 0.18), transparent 60%),
+          radial-gradient(700px 500px at 50% 100%, rgba(255, 209, 102, 0.12), transparent 60%),
+          linear-gradient(160deg, #0b0c10 0%, #0f172a 60%, #0a0d14 100%);
+        background-attachment: fixed;
       }
+
       .wrap {
-        max-width: 1100px;
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 40px 20px 60px;
+        padding: 28px 20px 60px;
       }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 143, 177, 0.8), rgba(101, 214, 255, 0.8));
+        box-shadow: 0 10px 30px rgba(255, 143, 177, 0.25);
+      }
+
+      .title {
+        font-family: "Fraunces", serif;
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: 0.4px;
+      }
+
+      .subtitle {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
       .hero {
         display: grid;
-        grid-template-columns: 1.2fr 1fr;
+        grid-template-columns: 1.4fr 1fr;
         gap: 24px;
-        align-items: center;
       }
-      .title {
-        font-size: 38px;
-        margin: 0 0 8px;
-        letter-spacing: 0.3px;
-      }
-      .subtitle {
-        margin: 0;
-        color: var(--muted);
-        line-height: 1.5;
-      }
+
       .panel {
-        background: linear-gradient(180deg, rgba(17,24,39,0.9), rgba(11,18,32,0.95));
-        border: 1px solid rgba(148,163,184,0.15);
+        background: var(--panel);
+        border: 1px solid rgba(148, 163, 184, 0.18);
         border-radius: 18px;
         padding: 20px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
       }
-      .controls {
+
+      .video-stage {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        border-radius: 20px;
+        overflow: hidden;
+        background: #05060a;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+
+      .video-stage .player {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateZ(0) scale(1.01);
+        filter: saturate(1.02);
+        transition: opacity 220ms ease, transform 220ms ease;
+        background: #000;
+        backface-visibility: hidden;
+      }
+
+      .video-stage .player.active {
+        opacity: 1;
+        pointer-events: auto;
+        z-index: 2;
+        transform: scale(1);
+      }
+
+      .video-stage .player.standby {
+        z-index: 1;
+      }
+
+      .video-stage .player.fade-in {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .video-stage .player.fade-out {
+        opacity: 0;
+        transform: scale(1.01);
+      }
+
+      .freeze-frame {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 3;
+        transition: opacity 180ms ease;
+      }
+
+      .freeze-frame.visible {
+        opacity: 1;
+      }
+
+      .preload-bin {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+
+      .floating-ui {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
         display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(5, 8, 16, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .pulse {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent-2);
+        box-shadow: 0 0 0 rgba(101, 214, 255, 0.5);
+        animation: pulse 1.8s infinite;
+      }
+
+      .pulse.off {
+        animation: none;
+        background: rgba(148, 163, 184, 0.4);
+        box-shadow: none;
+      }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(101, 214, 255, 0.6); }
+        70% { box-shadow: 0 0 0 12px rgba(101, 214, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(101, 214, 255, 0); }
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         align-items: center;
-        margin: 16px 0 10px;
       }
-      .manual {
-        flex: 1;
-        padding: 11px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(148,163,184,0.25);
-        background: rgba(2,6,23,0.5);
-        color: var(--text);
-      }
-      .toggle {
-        display: inline-flex;
-        gap: 10px;
-        align-items: center;
-        font-size: 14px;
-        color: var(--muted);
-      }
+
       .btn {
         border: 0;
         border-radius: 12px;
-        padding: 12px 16px;
-        background: linear-gradient(90deg, var(--accent), var(--accent-2));
-        color: #031318;
+        padding: 12px 18px;
         font-weight: 700;
         cursor: pointer;
-        transition: transform 0.12s ease, box-shadow 0.12s ease;
-        box-shadow: 0 6px 18px rgba(34,211,238,0.25);
+        color: #0b0c10;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        box-shadow: 0 10px 26px rgba(255, 143, 177, 0.3);
+        transition: transform 0.12s ease, filter 0.12s ease;
       }
+
       .btn:active { transform: translateY(1px); }
+
       .btn.secondary {
         background: transparent;
-        border: 1px solid rgba(148,163,184,0.35);
         color: var(--text);
+        border: 1px solid rgba(148, 163, 184, 0.4);
         box-shadow: none;
       }
+
+      .btn.ghost {
+        background: rgba(16, 21, 34, 0.6);
+        color: var(--text);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+
       .status {
         font-size: 14px;
         color: var(--muted);
       }
+
+      .status.ok { color: var(--success); }
       .status.error { color: var(--danger); }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: var(--muted);
+      }
+      .chip.error {
+        border-color: rgba(255, 107, 107, 0.5);
+        color: var(--danger);
+      }
+
       .transcript {
-        background: rgba(2,6,23,0.6);
-        border: 1px dashed rgba(148,163,184,0.25);
-        padding: 12px;
-        border-radius: 10px;
-        min-height: 48px;
-        margin-top: 10px;
+        min-height: 56px;
+        border-radius: 14px;
+        padding: 12px 14px;
+        border: 1px dashed rgba(148, 163, 184, 0.3);
+        background: rgba(7, 10, 20, 0.6);
+        color: var(--text);
       }
-      .grid {
+
+      .sidebar {
         display: grid;
-        grid-template-columns: 1fr 1fr;
         gap: 16px;
-        margin-top: 24px;
       }
-      video {
-        width: 100%;
-        border-radius: 12px;
-        background: #000;
-        border: 1px solid rgba(148,163,184,0.2);
-      }
+
       .list {
         display: grid;
         gap: 10px;
-        margin-top: 12px;
       }
+
       .item {
         padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(148,163,184,0.18);
-        background: rgba(2,6,23,0.4);
-        cursor: pointer;
-        transition: border 0.12s ease, transform 0.12s ease;
+        border-radius: 12px;
+        background: rgba(6, 9, 18, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        font-size: 14px;
       }
-      .item:hover { transform: translateY(-1px); border-color: rgba(34,211,238,0.6); }
-      .badge {
-        font-size: 12px;
-        padding: 4px 8px;
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        padding: 6px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(148,163,184,0.25);
-        color: var(--muted);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
       }
-      @media (max-width: 900px) {
-        .hero, .grid { grid-template-columns: 1fr; }
+
+      @media (max-width: 980px) {
+        .hero { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 720px) {
+        .header { flex-direction: column; align-items: flex-start; }
+        .title { font-size: 24px; }
+        .video-stage { aspect-ratio: 4 / 3; }
       }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <div class="hero">
-        <div>
-          <h1 class="title">Ovoz orqali video ochish</h1>
-          <p class="subtitle">
-            Pastdagi tugmani bosing va video nomini ayting.
-            Masalan: <span class="badge">tabiat</span> yoki <span class="badge">shahar</span>.
-          </p>
-          <div class="controls">
-            <button id="recordBtn" class="btn">Ovoz yozishni boshlash</button>
-            <button id="stopBtn" class="btn secondary" disabled>To'xtatish</button>
-            <span id="status" class="status">Tayyor</span>
-          </div>
-          <div class="controls">
-            <input id="manualInput" type="text" placeholder="Masalan: greeting yoki weather" class="manual" />
-            <button id="playBtn" class="btn secondary">Ochish</button>
-          </div>
-          <div class="controls">
-            <label class="toggle">
-              <input id="fuzzyToggle" type="checkbox" />
-              <span>Yaqin nomlarni ham qidirish (fuzzy)</span>
-            </label>
-          </div>
-          <div id="hint" class="status"></div>
-          <div class="transcript" id="transcript">Transkript shu yerda chiqadi...</div>
-        </div>
-        <div class="panel">
-          <div class="status">Video ro'yxati (aytishingiz mumkin bo'lgan nomlar)</div>
-          <div class="list" id="videoList">
-            {% for v in videos %}
-              <div class="item" data-name="{{ v.name }}" data-url="{{ v.url }}">{{ v.name }}</div>
-            {% endfor %}
+      <header class="header">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <h1 class="title">Virtual Video Chat Simulator</h1>
+            <p class="subtitle">Anime uslubidagi qahramon bilan real vaqtga yaqin suhbat demo.</p>
           </div>
         </div>
-      </div>
+        <div class="tags">
+          <span class="tag">SpeechRecognition</span>
+          <span class="tag">Seamless Playback</span>
+          <span class="tag">Responsive UI</span>
+        </div>
+      </header>
 
-      <div class="grid">
+      <section class="hero">
         <div class="panel">
-          <div class="status">Hozirgi video</div>
-          <video id="player" controls></video>
-        </div>
-        <div class="panel">
-          <div class="status">Ko'rsatma</div>
-          <div class="list">
-            <div class="item">1. Mikrofon tugmasini bosing.</div>
-            <div class="item">2. Video nomini aniq ayting.</div>
-            <div class="item">3. Video avtomatik ochiladi.</div>
+          <div class="video-stage" id="videoStage">
+            <video id="playerA" class="player active" preload="auto" playsinline muted></video>
+            <video id="playerB" class="player standby" preload="auto" playsinline muted></video>
+            <canvas id="freezeFrame" class="freeze-frame"></canvas>
+
+            <div class="floating-ui">
+              <div class="pulse off" id="micPulse"></div>
+              <span id="stateLabel">Idle</span>
+            </div>
+          </div>
+          <div class="preload-bin" aria-hidden="true">
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'idle' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'greeting' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'listening' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'weather' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'general_response' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'fallback' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'prompt' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'goodbye' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+            <video class="preload-video" preload="auto" playsinline muted src="{% for v in videos %}{% if v.name == 'easter_egg' %}{{ v.url }}{% endif %}{% endfor %}"></video>
+          </div>
+
+          <div class="controls">
+            <div class="row">
+              <button id="startBtn" class="btn">Start Chat</button>
+              <button id="endBtn" class="btn secondary" disabled>End Chat</button>
+              <button id="retryBtn" class="btn ghost">Retry Mic</button>
+            </div>
+            <div class="row">
+              <span class="chip" id="supportChip">Mic check...</span>
+              <span class="status" id="statusText">Ready</span>
+            </div>
+            <div>
+              <div class="status">Transcript</div>
+              <div class="transcript" id="transcript">Listening natijasi shu yerda chiqadi...</div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <aside class="sidebar">
+          <div class="panel">
+            <div class="status">Trigger kalit so'zlar</div>
+            <div class="list">
+              <div class="item">Page load → Idle/Waiting video (loop)</div>
+              <div class="item">Listening holati → Listening video (loop)</div>
+              <div class="item">Start Chat → Greeting video</div>
+              <div class="item">"hello", "hi" → General response</div>
+              <div class="item">"weather", "today" → Weather response</div>
+              <div class="item">"goodbye", "bye" → Goodbye</div>
+              <div class="item">"easter", "secret" → Easter egg video</div>
+              <div class="item">Boshqa gaplar → General response</div>
+              <div class="item">Xato bo'lsa → Fallback video</div>
+              <div class="item">9s jimlik → Prompt video</div>
+              <div class="item">2-marta jimlik → Goodbye</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="status">Flow</div>
+            <div class="list">
+              <div class="item">Idle → Start Chat</div>
+              <div class="item">Greeting → Listening (mic on)</div>
+              <div class="item">Response → Listening</div>
+              <div class="item">Silence → Prompt → Listening → Goodbye</div>
+            </div>
+          </div>
+        </aside>
+      </section>
     </div>
 
     <script>
-      const recordBtn = document.getElementById("recordBtn");
-      const stopBtn = document.getElementById("stopBtn");
-      const statusEl = document.getElementById("status");
+      const playerA = document.getElementById("playerA");
+      const playerB = document.getElementById("playerB");
+      const players = [playerA, playerB];
+      let activePlayer = playerA;
+      let inactivePlayer = playerB;
+      const freezeFrame = document.getElementById("freezeFrame");
+      const freezeCtx = freezeFrame.getContext("2d");
+
+      const stateLabel = document.getElementById("stateLabel");
+      const statusText = document.getElementById("statusText");
       const transcriptEl = document.getElementById("transcript");
-      const player = document.getElementById("player");
-      const manualInput = document.getElementById("manualInput");
-      const playBtn = document.getElementById("playBtn");
-      const hintEl = document.getElementById("hint");
-      const fuzzyToggle = document.getElementById("fuzzyToggle");
-      const list = Array.from(document.querySelectorAll("#videoList .item")).map((el) => ({
-        name: el.dataset.name.toLowerCase(),
-        url: el.dataset.url,
-        el,
-      }));
+      const supportChip = document.getElementById("supportChip");
+      const micPulse = document.getElementById("micPulse");
+      const startBtn = document.getElementById("startBtn");
+      const endBtn = document.getElementById("endBtn");
+      const retryBtn = document.getElementById("retryBtn");
 
-      function normalize(text) {
-        return text
-          .toLowerCase()
-          .replace(/[^\w\s']/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
+      const videoSources = {
+        idle: "{% for v in videos %}{% if v.name == 'idle' %}{{ v.url }}{% endif %}{% endfor %}",
+        greeting: "{% for v in videos %}{% if v.name == 'greeting' %}{{ v.url }}{% endif %}{% endfor %}",
+        listening: "{% for v in videos %}{% if v.name == 'listening' %}{{ v.url }}{% endif %}{% endfor %}",
+        weather: "{% for v in videos %}{% if v.name == 'weather' %}{{ v.url }}{% endif %}{% endfor %}",
+        general: "{% for v in videos %}{% if v.name == 'general_response' %}{{ v.url }}{% endif %}{% endfor %}",
+        fallback: "{% for v in videos %}{% if v.name == 'fallback' %}{{ v.url }}{% endif %}{% endfor %}",
+        prompt: "{% for v in videos %}{% if v.name == 'prompt' %}{{ v.url }}{% endif %}{% endfor %}",
+        goodbye: "{% for v in videos %}{% if v.name == 'goodbye' %}{{ v.url }}{% endif %}{% endfor %}",
+        easter: "{% for v in videos %}{% if v.name == 'easter_egg' %}{{ v.url }}{% endif %}{% endfor %}",
+      };
+
+      let currentKey = null;
+      let listeningActive = false;
+      let silenceTimer = null;
+      let silenceCount = 0;
+      let warmedUp = false;
+      let swapInProgress = false;
+      let pendingSwitch = null;
+
+      function setStatus(text, type) {
+        statusText.textContent = text;
+        statusText.classList.remove("ok", "error");
+        if (type) statusText.classList.add(type);
       }
 
-      function levenshtein(a, b) {
-        const m = a.length;
-        const n = b.length;
-        if (m === 0) return n;
-        if (n === 0) return m;
-        const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-        for (let i = 0; i <= m; i++) dp[i][0] = i;
-        for (let j = 0; j <= n; j++) dp[0][j] = j;
-        for (let i = 1; i <= m; i++) {
-          for (let j = 1; j <= n; j++) {
-            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-            dp[i][j] = Math.min(
-              dp[i - 1][j] + 1,
-              dp[i][j - 1] + 1,
-              dp[i - 1][j - 1] + cost
-            );
-          }
+      function setStateLabel(text) {
+        stateLabel.textContent = text;
+      }
+
+      function setMicPulse(active) {
+        micPulse.classList.toggle("off", !active);
+      }
+
+      function swapPlayers() {
+        const temp = activePlayer;
+        activePlayer = inactivePlayer;
+        inactivePlayer = temp;
+      }
+
+      function sizeFreezeFrame() {
+        const rect = activePlayer.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        freezeFrame.width = Math.max(1, Math.floor(rect.width * dpr));
+        freezeFrame.height = Math.max(1, Math.floor(rect.height * dpr));
+        freezeFrame.style.width = rect.width + "px";
+        freezeFrame.style.height = rect.height + "px";
+      }
+
+      function captureFreezeFrame() {
+        sizeFreezeFrame();
+        try {
+          freezeCtx.drawImage(activePlayer, 0, 0, freezeFrame.width, freezeFrame.height);
+        } catch (err) {
         }
-        return dp[m][n];
       }
 
-      function matchVideo(text) {
-        const cleaned = normalize(text);
-        const exact = list.find((v) => cleaned.includes(v.name));
-        if (exact || !fuzzyToggle.checked) return exact;
-
-        let best = null;
-        let bestScore = Infinity;
-        for (const v of list) {
-          const score = levenshtein(cleaned, v.name);
-          if (score < bestScore) {
-            bestScore = score;
-            best = v;
-          }
+      async function ensureMicPermission() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setStatus("Mic API not available in this browser.", "error");
+          return false;
         }
-        const maxDistance = Math.max(2, Math.ceil(best?.name.length * 0.35));
-        return bestScore <= maxDistance ? best : null;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((t) => t.stop());
+          return true;
+        } catch (err) {
+          setStatus("Mikrofonga ruxsat berilmadi. Brauzer ruxsatini tekshiring.", "error");
+          return false;
+        }
       }
 
-      function playVideo(video) {
-        if (!video) return;
-        player.src = video.url;
-        player.play().catch(() => {});
-        list.forEach((v) => v.el.classList.remove("active"));
-        video.el.classList.add("active");
+      function waitForEvent(target, eventName) {
+        return new Promise((resolve) => {
+          target.addEventListener(eventName, resolve, { once: true });
+        });
       }
 
-      list.forEach((v) => {
-        v.el.addEventListener("click", () => playVideo(v));
-      });
+      function waitForLoadedMetadata(videoEl) {
+        if (videoEl.readyState >= 1) return Promise.resolve();
+        return waitForEvent(videoEl, "loadedmetadata");
+      }
+
+      function waitForSeeked(videoEl, targetTime) {
+        if (!videoEl.seeking && Math.abs(videoEl.currentTime - targetTime) < 0.001) {
+          return Promise.resolve();
+        }
+        return waitForEvent(videoEl, "seeked");
+      }
+
+      // Confirm a decoded frame is actually rendered.
+      function waitForFirstFrame(videoEl) {
+        return new Promise((resolve) => {
+          if (typeof videoEl.requestVideoFrameCallback === "function") {
+            videoEl.requestVideoFrameCallback(() => resolve());
+            return;
+          }
+          const onTimeUpdate = () => {
+            if (videoEl.readyState >= 2 && videoEl.currentTime > 0) {
+              resolve();
+            } else {
+              videoEl.addEventListener("timeupdate", onTimeUpdate, { once: true });
+            }
+          };
+          videoEl.addEventListener("timeupdate", onTimeUpdate, { once: true });
+        });
+      }
+
+      function rampVolume(videoEl, from, to, durationMs = 150) {
+        const start = performance.now();
+        videoEl.volume = from;
+        function step(now) {
+          const t = Math.min(1, (now - start) / durationMs);
+          videoEl.volume = from + (to - from) * t;
+          if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      function requestSwitch(nextKey, options) {
+        if (swapInProgress) {
+          pendingSwitch = { nextKey, options };
+          return;
+        }
+        switchVideo(nextKey, options);
+      }
+
+      // Zero-black-frame switch pipeline with freeze-frame + double buffer.
+      function switchVideo(nextKey, { loop = false, muted = false } = {}) {
+        if (swapInProgress) return;
+        const nextSrc = (videoSources[nextKey] || "").trim();
+        if (!nextSrc) return;
+
+        const next = inactivePlayer;
+        const previous = activePlayer;
+        const targetMuted = muted;
+        const targetVolume = targetMuted ? 0 : 1;
+
+        if (next.dataset.key !== nextKey || next.src !== nextSrc) {
+          next.src = nextSrc;
+          next.load();
+        }
+
+        next.dataset.key = nextKey;
+        next.loop = loop;
+        next.muted = true; // keep muted during pre-roll
+        next.currentTime = 0;
+        next.classList.remove("active");
+        next.classList.add("standby");
+
+        swapInProgress = true;
+        captureFreezeFrame();
+        let overlayShown = false;
+        const overlayTimer = setTimeout(() => {
+          freezeFrame.classList.add("visible");
+          overlayShown = true;
+        }, 120);
+
+        const metrics = {
+          clickTs: performance.now(),
+          metadataTs: null,
+          firstFrameTs: null,
+          swapTs: null,
+          playError: null,
+        };
+
+        const finalizeSwitch = () => {
+          next.classList.add("fade-in");
+          next.classList.add("active");
+          next.classList.remove("standby");
+          previous.classList.add("fade-out");
+          previous.classList.remove("active");
+          previous.classList.add("standby");
+          clearTimeout(overlayTimer);
+          setTimeout(() => {
+            next.classList.remove("fade-in");
+            previous.classList.remove("fade-out");
+            if (overlayShown) {
+              freezeFrame.classList.remove("visible");
+            }
+          }, 200);
+          previous.muted = true;
+          if (!previous.muted) {
+            rampVolume(previous, previous.volume, 0, 150);
+          }
+          if (!targetMuted) {
+            rampVolume(next, 0, targetVolume, 150);
+          }
+          setTimeout(() => {
+            previous.pause();
+            previous.currentTime = 0;
+            previous.volume = 0;
+          }, 180);
+          next.muted = targetMuted;
+          next.volume = targetMuted ? 0 : Math.max(0, targetVolume);
+          currentKey = nextKey;
+          swapPlayers();
+          swapInProgress = false;
+          if (pendingSwitch) {
+            const queued = pendingSwitch;
+            pendingSwitch = null;
+            switchVideo(queued.nextKey, queued.options || {});
+            return;
+          }
+          metrics.swapTs = performance.now();
+          console.table({
+            click_to_metadata_ms: metrics.metadataTs ? (metrics.metadataTs - metrics.clickTs).toFixed(1) : "n/a",
+            click_to_first_frame_ms: metrics.firstFrameTs ? (metrics.firstFrameTs - metrics.clickTs).toFixed(1) : "n/a",
+            click_to_swap_ms: (metrics.swapTs - metrics.clickTs).toFixed(1),
+            play_error: metrics.playError || "none",
+          });
+        };
+
+        const startPlayback = async () => {
+          try {
+            // 1) Metadata gate
+            await waitForLoadedMetadata(next);
+            metrics.metadataTs = performance.now();
+
+            // 2) Seek to a safe time to force keyframe decode
+            const safeSeek = Math.min(0.05, Math.max(0, (next.duration || 0) - 0.05));
+            next.currentTime = safeSeek;
+            await waitForSeeked(next, safeSeek);
+
+            // 3) Start muted playback (buffer warm-up)
+            const playPromise = next.play();
+            if (playPromise) await playPromise;
+
+            // 4) First rendered frame gate
+            await waitForFirstFrame(next);
+            metrics.firstFrameTs = performance.now();
+
+            // 5) Pre-roll warmup to ensure GPU texture is stable
+            await new Promise((resolve) => setTimeout(resolve, 160));
+
+            next.muted = targetMuted;
+            next.volume = 0;
+            finalizeSwitch();
+          } catch (err) {
+            metrics.playError = err?.message || String(err);
+            setStatus("Autoplay bloklandi. Start Chat tugmasini bosing.", "error");
+            swapInProgress = false;
+            if (pendingSwitch) {
+              const queued = pendingSwitch;
+              pendingSwitch = null;
+              switchVideo(queued.nextKey, queued.options || {});
+            }
+          }
+        };
+
+        startPlayback();
+      }
+
+      function resetSilenceTimer() {
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+          if (!listeningActive) return;
+          silenceCount += 1;
+          playPromptOrGoodbye();
+        }, 9000);
+      }
+
+      function clearSilenceTimer() {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+
+      function playPromptOrGoodbye() {
+        stopListening();
+        if (silenceCount >= 2) {
+          setStatus("No response. Ending chat.");
+          playGoodbye();
+          return;
+        }
+        setStatus("Silence detected. Prompting user...");
+        setStateLabel("Prompt");
+        requestSwitch("prompt", { loop: false, muted: false });
+      }
+
+      function startListening() {
+        listeningActive = true;
+        setMicPulse(true);
+        setStateLabel("Listening");
+        requestSwitch("listening", { loop: true, muted: false });
+        setStatus("Listening...", "ok");
+        startRecognition();
+        resetSilenceTimer();
+      }
+
+      function stopListening() {
+        listeningActive = false;
+        setMicPulse(false);
+        clearSilenceTimer();
+        stopRecognition();
+      }
+
+      function playGoodbye() {
+        stopListening();
+        setStateLabel("Goodbye");
+        requestSwitch("goodbye", { loop: false, muted: false });
+      }
+
+      function playResponse(key) {
+        stopListening();
+        setStateLabel("Response");
+        requestSwitch(key, { loop: false, muted: false });
+      }
+
+      function resetToIdle() {
+        stopListening();
+        silenceCount = 0;
+        setStateLabel("Waiting");
+        requestSwitch("idle", { loop: true, muted: true });
+        setStatus("Ready");
+        endBtn.disabled = true;
+        startBtn.disabled = false;
+      }
 
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const isSecure = window.isSecureContext || location.hostname === "localhost";
+      let recognition = null;
+      let recognitionActive = false;
+      let interimTimer = null;
+      let lastInterimText = "";
+      let lastResultAt = 0;
 
-      if (!SpeechRecognition || !isSecure) {
-        statusEl.textContent = !SpeechRecognition
-          ? "Brauzeringizda SpeechRecognition qo'llab-quvvatlanmaydi."
-          : "Ovoz faqat HTTPS yoki localhostda ishlaydi.";
-        statusEl.classList.add("error");
-        recordBtn.disabled = true;
-      }
+      function initRecognition() {
+        if (!SpeechRecognition || !isSecure) {
+          supportChip.textContent = !SpeechRecognition
+            ? "SpeechRecognition not supported"
+            : "Mic works only on HTTPS/localhost";
+          supportChip.classList.add("error");
+          retryBtn.disabled = true;
+          return;
+        }
 
-      if (!isSecure) {
-        hintEl.textContent = "Maslahat: http://localhost:8000 orqali oching yoki HTTPS ishlating.";
-      }
-
-      if (SpeechRecognition && isSecure) {
-        const recognition = new SpeechRecognition();
+        recognition = new SpeechRecognition();
         recognition.lang = "en-US";
-        recognition.interimResults = false;
+        recognition.continuous = true;
+        recognition.interimResults = true;
         recognition.maxAlternatives = 1;
+        supportChip.textContent = "Mic ready";
+        supportChip.classList.remove("error");
 
         recognition.onstart = () => {
-          statusEl.textContent = "Tinglanyapti...";
-          statusEl.classList.remove("error");
-          recordBtn.disabled = true;
-          stopBtn.disabled = false;
+          recognitionActive = true;
+          supportChip.textContent = "Mic active";
+          supportChip.classList.remove("error");
         };
 
         recognition.onend = () => {
-          statusEl.textContent = "Tayyor";
-          recordBtn.disabled = false;
-          stopBtn.disabled = true;
+          recognitionActive = false;
+          if (listeningActive) {
+            startRecognition();
+          }
         };
 
-        recognition.onerror = (e) => {
-          if (e.error === "service-not-allowed" || e.error === "not-allowed") {
-            statusEl.textContent = "Mikrofonga ruxsat berilmadi. Brauzer ruxsatini tekshiring.";
-          } else {
-            statusEl.textContent = "Xatolik: " + e.error;
+        recognition.onspeechend = () => {
+          // Force end sooner when the user stops speaking
+          if (recognitionActive) {
+            recognition.stop();
           }
-          statusEl.classList.add("error");
+        };
+
+        recognition.onerror = (event) => {
+          recognitionActive = false;
+          setStatus("Mic error: " + event.error, "error");
+          playResponse("fallback");
         };
 
         recognition.onresult = (event) => {
-          const text = event.results[0][0].transcript;
-          transcriptEl.textContent = text;
-          const video = matchVideo(text);
-          if (video) {
-            playVideo(video);
-            statusEl.textContent = "Topildi: " + video.name;
-            statusEl.classList.remove("error");
-          } else {
-            statusEl.textContent = "Mos video topilmadi. Yana urinib ko'ring.";
-            statusEl.classList.add("error");
-          }
-        };
+          clearSilenceTimer();
+          const results = Array.from(event.results);
+          const last = results[results.length - 1];
+          const transcript = results.map((r) => r[0].transcript).join(" ").trim();
+          transcriptEl.textContent = transcript || "(no transcript)";
+          silenceCount = 0;
+          lastResultAt = performance.now();
 
-        recordBtn.addEventListener("click", () => recognition.start());
-        stopBtn.addEventListener("click", () => recognition.stop());
+          if (last.isFinal) {
+            clearTimeout(interimTimer);
+            lastInterimText = "";
+            handleTranscript(transcript);
+            return;
+          }
+
+          // Use interim result if final is slow (reduce latency)
+          lastInterimText = transcript;
+          clearTimeout(interimTimer);
+          interimTimer = setTimeout(() => {
+            if (!lastInterimText) return;
+            handleTranscript(lastInterimText);
+            lastInterimText = "";
+          }, 600);
+
+          resetSilenceTimer();
+        };
       }
 
-      playBtn.addEventListener("click", () => {
-        const video = matchVideo(manualInput.value || "");
-        if (video) {
-          playVideo(video);
-          statusEl.textContent = "Topildi: " + video.name;
-          statusEl.classList.remove("error");
-        } else {
-          statusEl.textContent = "Mos video topilmadi. Yana urinib ko'ring.";
-          statusEl.classList.add("error");
+      function handleTranscript(text) {
+        const cleaned = (text || "").trim();
+        if (!cleaned) {
+          setStatus("No speech captured. Fallback response.", "error");
+          playResponse("fallback");
+          return;
+        }
+        const responseKey = getResponseKey(cleaned);
+        if (responseKey === "goodbye") {
+          setStatus("Goodbye detected.");
+          playGoodbye();
+          return;
+        }
+        setStatus("Responding...");
+        playResponse(responseKey);
+      }
+
+      function startRecognition() {
+        if (!recognition) {
+          setStatus("Mic unavailable in this browser/context.", "error");
+          return;
+        }
+        if (recognitionActive) return;
+        try {
+          recognition.start();
+          setStatus("Mic listening...", "ok");
+        } catch (err) {
+          setStatus("Mic start failed.", "error");
+        }
+      }
+
+      function stopRecognition() {
+        if (!recognition || !recognitionActive) return;
+        recognition.stop();
+      }
+
+      function getResponseKey(text) {
+        const cleaned = text.toLowerCase();
+        if (cleaned.includes("goodbye") || cleaned.includes("bye")) return "goodbye";
+        if (cleaned.includes("easter") || cleaned.includes("secret")) return "easter";
+        if (cleaned.includes("weather") || cleaned.includes("today")) return "weather";
+        if (cleaned.includes("hello") || cleaned.includes("hi")) return "general";
+        return "general";
+      }
+
+      function ensureUserGesture() {
+        players.forEach((el) => {
+          el.muted = false;
+        });
+        if (!warmedUp) {
+          warmUpVideos();
+        }
+      }
+
+      async function warmUpVideos() {
+        warmedUp = true;
+        const preloadVideos = Array.from(document.querySelectorAll(".preload-video"));
+        for (const videoEl of preloadVideos) {
+          try {
+            videoEl.muted = true;
+            await waitForLoadedMetadata(videoEl);
+            const playPromise = videoEl.play();
+            if (playPromise) await playPromise;
+            await waitForFirstFrame(videoEl);
+            videoEl.pause();
+            videoEl.currentTime = 0;
+          } catch (err) {
+            videoEl.pause();
+            videoEl.currentTime = 0;
+          } finally {
+            videoEl.muted = false;
+          }
+        }
+      }
+
+      startBtn.addEventListener("click", async () => {
+        ensureUserGesture();
+        const micOk = await ensureMicPermission();
+        if (!micOk) {
+          startBtn.disabled = false;
+          return;
+        }
+        startBtn.disabled = true;
+        endBtn.disabled = false;
+        silenceCount = 0;
+        setStateLabel("Greeting");
+        setStatus("Greeting...", "ok");
+        requestSwitch("greeting", { loop: false, muted: false });
+      });
+
+      endBtn.addEventListener("click", () => {
+        setStatus("Chat ended by user.");
+        playGoodbye();
+      });
+
+      retryBtn.addEventListener("click", () => {
+        if (!recognition) {
+          initRecognition();
+        }
+        if (!listeningActive) {
+          startListening();
         }
       });
+
+      function handleEnded() {
+        if (currentKey === "greeting") {
+          startListening();
+          return;
+        }
+        if (currentKey === "prompt") {
+          startListening();
+          return;
+        }
+        if (["general", "weather", "fallback", "easter"].includes(currentKey)) {
+          startListening();
+          return;
+        }
+        if (currentKey === "goodbye") {
+          resetToIdle();
+        }
+      }
+
+      players.forEach((videoEl) => {
+        videoEl.addEventListener("ended", () => {
+          if (videoEl !== activePlayer) return;
+          handleEnded();
+        });
+      });
+
+      window.addEventListener("resize", () => {
+        if (freezeFrame.classList.contains("visible")) {
+          captureFreezeFrame();
+        }
+      });
+
+      initRecognition();
+      requestSwitch("idle", { loop: true, muted: true });
+      setStateLabel("Waiting");
+      setStatus("Ready", "ok");
     </script>
   </body>
 </html>
