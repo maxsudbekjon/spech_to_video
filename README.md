@@ -8,6 +8,7 @@ Anime uslubidagi virtual qahramon bilan video suhbatni simulyatsiya qiluvchi dem
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requiremend.txt
+cp env.example .env
 python manage.py migrate
 python manage.py runserver
 ```
@@ -15,6 +16,40 @@ python manage.py runserver
 Brauzer: `http://localhost:8000`
 
 > Eslatma: SpeechRecognition faqat HTTPS yoki `localhost`da ishlaydi.
+
+## .env sozlamalari
+
+Minimal ishlashi uchun `.env` fayl yarating va quyidagilarni to'ldiring:
+
+- `SECRET_KEY`: Django uchun maxfiy kalit. Terminal orqali yaratish:
+  ```bash
+  python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+  ```
+- `DEBUG`: `True` yoki `False`.
+- `ALLOWED_HOSTS`: masalan `localhost,127.0.0.1`.
+
+### Database (default: SQLite)
+
+Test va lokal development uchun default SQLite ishlatiladi. Hech qanday qo'shimcha DB sozlash shart emas.
+
+Kerak bo'lsa `.env`da quyidagilarni yozing:
+
+```env
+DB_TYPE=SQLITE
+```
+
+### Postgres (ixtiyoriy)
+
+Agar Postgres ishlatmoqchi bo'lsangiz:
+
+```env
+DB_TYPE=POSTGRES
+DB_NAME=your_db
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+```
 
 ## Texnologiya tanlovi
 
